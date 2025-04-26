@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Feedback form</title>
+        <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+        <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-database-compat.js"></script>
+    </head>
+    <body>
+        <div id="root"></div>
+    </body>
+    <script type="text/babel">
+        const firebaseConfig = {
+            apiKey: "AIzaSyBc0dK8i10rHktJ2Oq7uHhBOw-z-5BiGGQ",
+            authDomain: "massi-assessment.firebaseapp.com",
+            databaseURL: "https://massi-assessment-default-rtdb.firebaseio.com",
+            projectId: "massi-assessment",
+            storageBucket: "massi-assessment.firebasestorage.app",
+            messagingSenderId: "276722086538",
+            appId: "1:276722086538:web:ada7102c941aaedfd5f373",
+            measurementId: "G-HZEH0VX5M5"
+        };
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database(app);
+
+        const ModeContext = React.createContext();
+
+        function Navbar() {
+            const { mode, toggleMode } = React.useContext(ModeContext);
+            return (
+                <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', backgroundColor: mode === 'Light Mode' ? '#f8f9fa' : '#333', color: mode === 'Light Mode' ? '#000' : '#fff' }}>
+                    <div style={{ fontSize: '24px' }}>Feedback Form</div>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                        <a href="#feedback-form" style={{ textDecoration: 'none', color: mode === 'Light Mode' ? '#007BFF' : '#4da8ff' }}>Feedback Form</a>
+                        <a href="#view-feedbacks" style={{ textDecoration: 'none', color: mode === 'Light Mode' ? '#007BFF' : '#4da8ff' }}>View Feedbacks</a>
+                    </div>
+                    <div>
+                        <button
+                            onClick={toggleMode}
+                            style={{
+                                backgroundColor: mode === 'Light Mode' ? '#333' : '#fff',
+                                color: mode === 'Light Mode' ? '#fff' : '#333',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {mode}
+                        </button>
+                    </div>
+                </nav>
+            );
+        }
+
+        function FeedbackForm() {
+            const { mode } = React.useContext(ModeContext);
+            const [name, setName] = React.useState('');
+            const [email, setEmail] = React.useState('');
+            const [feedback, setFeedback] = React.useState('');
+            const handleSubmit = (event) => {
+                event.preventDefault();
+                saveFeedback(name, email, feedback);
+                setName('');
+                setEmail('');
+                setFeedback('');
+                alert('Feedback submitted successfully!');
+            };
+            return (
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', width: '500px', margin: 'auto', color: mode === 'Light Mode' ? '#000' : '#fff' }}>
+                    <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '16px', width: '500px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', backgroundColor: mode === 'Light Mode' ? '#fff' : '#444' }}>
+                        <div style={{ fontSize: '24px', textAlign: 'center', margin: '16px', padding: '16px' }}>
+                            <label>Name :</label>
+                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required style={{ backgroundColor: mode === 'Light Mode' ? '#fff' : '#666', color: mode === 'Light Mode' ? '#000' : '#fff', border: '1px solid #ccc', borderRadius: '4px', padding: '8px' }} />
+                        </div>
+                        <div style={{ fontSize: '24px', textAlign: 'center', margin: '16px', padding: '16px' }}>
+                            <label>Email:</label>
+                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ backgroundColor: mode === 'Light Mode' ? '#fff' : '#666', color: mode === 'Light Mode' ? '#000' : '#fff', border: '1px solid #ccc', borderRadius: '4px', padding: '8px' }} />
+                        </div>
+                        <div style={{ fontSize: '24px', textAlign: 'center', margin: '16px', padding: '16px' }}>
+                            <label>Feedback:</label>
+                            <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} required style={{ backgroundColor: mode === 'Light Mode' ? '#fff' : '#666', color: mode === 'Light Mode' ? '#000' : '#fff', border: '1px solid #ccc', borderRadius: '4px', padding: '8px' }}></textarea>
+                        </div>
+                        <button type="submit">Submit</button>
+                    </div>
+                </form>
+            );
+        }
+
+        function ViewFeedbacks() {
+            const { mode } = React.useContext(ModeContext);
+            const [feedbacks, setFeedbacks] = React.useState([]);
+
+            React.useEffect(() => {
+                const feedbackRef = db.ref('feedbacks');
+                feedbackRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    const feedbackList = data
+                        ? Object.entries(data).map(([id, feedback]) => ({ id, ...feedback }))
+                        : [];
+                    setFeedbacks(feedbackList);
+                });
+
+                return () => feedbackRef.off();
+            }, []);
+
+            function handleDelete(id) {
+                const feedbackRef = db.ref(`feedbacks/${id}`);
+                feedbackRef
+                    .remove()
+                    .then(() => {
+                        console.log('Feedback deleted successfully!');
+                    })
+                    .catch((error) => {
+                        console.error('Error deleting feedback:', error);
+                    });
+            }
+
+            return (
+                <div style={{ color: mode === 'Light Mode' ? '#000' : '#fff' }}>
+                    <h2 style={{ color: mode === 'Light Mode' ? '#000' : '#000' }}>All Feedbacks</h2>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                        {feedbacks.map((feedback) => (
+                            <div
+                                key={feedback.id}
+                                style={{
+                                    border: '1px solid #ccc',
+                                    borderRadius: '8px',
+                                    padding: '16px',
+                                    width: '300px',
+                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                                    backgroundColor: mode === 'Light Mode' ? '#fff' : '#444'
+                                }}
+                            >
+                                <p>
+                                    <strong>Name:</strong> {feedback.name}
+                                </p>
+                                <p>
+                                    <strong>Email:</strong> {feedback.email}
+                                </p>
+                                <p>
+                                    <strong>Feedback:</strong> {feedback.feedback}
+                                </p>
+                                <button
+                                    style={{
+                                        backgroundColor: mode === 'Light Mode' ? '#007BFF' : '#4da8ff',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '8px 16px',
+                                        borderRadius: '4px'
+                                    }}
+                                    onClick={() => handleDelete(feedback.id)}
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [mode, setMode] = React.useState('Light Mode');
+            const toggleMode = () => setMode(mode === 'Light Mode' ? 'Dark Mode' : 'Light Mode');
+
+            return (
+                <ModeContext.Provider value={{ mode, toggleMode }}>
+                    <Navbar />
+                    <FeedbackForm />
+                    <ViewFeedbacks />
+                </ModeContext.Provider>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</html>
